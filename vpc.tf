@@ -1,0 +1,65 @@
+#LOCALS
+
+locals {
+  public_subnets_map = {
+    for subnet in var.public_subnets : subnet.name => {
+      name = "${var.prefix}-${subnet.name}"
+      az = subnet.az
+      cidr = subnet.cidr
+    }
+  }
+}
+
+#VPC
+resource "aws_vpc" "main" {
+  cidr_block = "var.vpc_cidr"
+
+  tags = {
+    Name = "${var.prefix}-vpc"
+  }
+}
+
+#IGW
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.prefix}-igw"
+  }
+}
+
+resource "aws_subnet" "public" {
+  for_each = local.public_subnets_map
+
+  vpc_id = aws_vpc.main.id
+  cidr_block = each.value.cidr
+  availability_zone = each.value.az
+
+  tags = {
+    Name = each.value.name
+  }
+}
+#ROUTE TABLES
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name = "${var.prefix}-rt"
+  }
+}
+
+#ROUTE TABLE ASSOCIATIONS
+
+resource "aws_route_table_association" "public" {
+  for_each = aws_subnet.public
+
+  subnet_id = each.value.id
+  route_table_id = aws_route_table.public.id
+}
