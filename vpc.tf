@@ -4,7 +4,7 @@ locals {
   public_subnets_map = {
     for subnet in var.public_subnets : subnet.name => {
       name = "${var.prefix}-${subnet.name}"
-      az = subnet.az
+      az   = subnet.az
       cidr = subnet.cidr
     }
   }
@@ -32,8 +32,8 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
   for_each = local.public_subnets_map
 
-  vpc_id = aws_vpc.main.id
-  cidr_block = each.value.cidr
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = each.value.cidr
   availability_zone = each.value.az
 
   tags = {
@@ -60,6 +60,6 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   for_each = aws_subnet.public
 
-  subnet_id = each.value.id
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
 }
